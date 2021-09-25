@@ -22,7 +22,7 @@ public class IgniteServer {
         try (Ignite ignite = Ignition.start("src/main/resources/ignite.xml")) {
             System.out.println("-----------IGNITE SERVER STARTED---------------");
             CacheConfiguration<Integer, String> cc = new CacheConfiguration<>();
-            cc.setName(CACHE_NAME).setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(new Duration(TimeUnit.SECONDS, 1)));
+            cc.setName(CACHE_NAME).setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(new Duration(TimeUnit.SECONDS, 2)));
             cc.setEagerTtl(true);
             cc.setStatisticsEnabled(true);
             ignite.createCache(cc);
@@ -32,6 +32,7 @@ public class IgniteServer {
                 System.out.println("-----------IGNITE THIN CLIENT STARTED---------------");
                 ClientCache<Integer, String> cache = client.getOrCreateCache(CACHE_NAME);
                 ContinuousQuery<Integer, String> query = new ContinuousQuery<>();
+                query.setIncludeExpired(true);
                 query.setLocalListener(events -> events.forEach(e -> System.out.println(
                         "EVENT: "
                                 + e.getEventType()
@@ -40,7 +41,7 @@ public class IgniteServer {
                                 + " "
                                 + e.getValue())));
                 //Filter fo expired entity
-                query.setRemoteFilterFactory((Factory<CacheEntryEventFilter<Integer, String>>) () -> e -> e.getEventType().equals(EventType.EXPIRED));
+                query.setRemoteFilterFactory((Factory<CacheEntryEventFilter<Integer, String>>) () -> e -> true);
                 cache.query(query);
                 System.out.println("-----------INSERT---------------");
                 cache.put(1, "one");
